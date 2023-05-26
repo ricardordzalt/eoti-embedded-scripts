@@ -10,11 +10,11 @@ if [ -f "$config_file" ]; then
   # Verificar si la variable access_token está presente
   if [ -n "$access_token" ]; then
     # Acción si el access_token está presente
-    echo "connect to server: $access_token"
+    has_token="1"
   else
     # Acción si el access_token no está presente
-    echo "start ap"
+    has_token="0"
   fi
 else
-    echo "start ap"
+    has_token="0"
 fi
