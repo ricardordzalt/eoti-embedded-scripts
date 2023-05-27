@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Verificar si NetworkManager está en ejecución
+if ! pgrep -x "NetworkManager" >/dev/null; then
+    echo "NetworkManager is not running. Starting NetworkManager..."
+    sudo systemctl start NetworkManager
+    sudo systemctl enable NetworkManager
+    echo "NetworkManager started and enabled."
+fi
+
 # Obtener el MAC address sin los dos puntos
 mac_address=$(ifconfig | grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | sed 's/://g')
 
