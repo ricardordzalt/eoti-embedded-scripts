@@ -25,9 +25,7 @@ handle_post_request() {
 while true; do
     # Esperar a que llegue una petición
     request=$(nc -l -p 8000)
-    response="HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\n{\"status\": \"OK\"}"
-    # echo -en "$response"
-    # echo ${request}
+    echo ${request}
     # Extraer el método y la ruta de la petición
     method=$(echo "$request" | awk '{print $1}')
     path=$(echo "$request" | awk '{print $2}')
