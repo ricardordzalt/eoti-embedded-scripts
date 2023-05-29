@@ -17,6 +17,15 @@ ssid="eoti-${mac_address}"
 # Crear la contraseña utilizando el MAC address al revés
 password=$(echo "${mac_address}" | rev)
 echo "${mac_address}"
-# echo "nmcli dev wifi hotspot ifname wlan0 ssid "${ssid}" password "${password}""
+
 # Configurar el punto de acceso utilizando el SSID y la contraseña
 nmcli dev wifi hotspot ifname wlan0 ssid "${ssid}" password "${password}"
+
+# Asignar una dirección IP al punto de acceso utilizando el rango de direcciones deseado
+sudo ip addr add 192.168.100.1/24 dev wlan0
+
+# Habilitar el enrutamiento de red
+sudo sysctl net.ipv4.ip_forward=1
+
+# Configurar NAT para redireccionar el tráfico del punto de acceso a la conexión a Internet
+sudo iptables -t nat -A POSTROUTING -o <interface_de_red_conexion_internet> -j MASQUERADE
