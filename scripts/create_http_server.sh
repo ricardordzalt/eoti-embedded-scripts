@@ -8,12 +8,19 @@ PYTHON_SCRIPT="create_http_server.py"
 
 # Variable a monitorear
 VARIABLE="is_auth"
+is_auth="0"
 
 # Obtener el valor inicial de la variable del archivo de configuración
-# initial_value=$(grep -Po "(?<=^$VARIABLE=).*" "$CONFIG_FILE")
 initial_value=$(grep -Eo "^$VARIABLE=.*" "$CONFIG_FILE" | awk -F '=' '{print $2}')
 
-
+# Verificar si la variable está definida en el archivo de configuración
+if [ -z "$initial_value" ]; then
+    # Variable no definida, inicializarla en false
+    echo "$VARIABLE=false" >> "$CONFIG_FILE"
+else
+    # Variable definida, cambiarla a false
+    awk -v var="$VARIABLE=false" '/^'"$VARIABLE"'=/{ $0=var }1' "$CONFIG_FILE" > tmpfile && mv tmpfile "$CONFIG_FILE"
+fi
 
 # Función para ejecutar el programa en Python
 run_python_script() {
@@ -22,13 +29,12 @@ run_python_script() {
 
 # Función para comprobar si la variable ha cambiado en el archivo de configuración
 check_variable_changes() {
-    # current_value=$(grep -Po "(?<=^$VARIABLE=).*" "$CONFIG_FILE")
     current_value=$(grep -Eo "^$VARIABLE=.*" "$CONFIG_FILE" | awk -F '=' '{print $2}')
     
-    if [ "$current_value" != "$initial_value" ]; then
-        echo "La variable $VARIABLE ha cambiado. Cerrando el programa..."
+    if [ "$current_value" = "true" ]; then
+        echo "Logged succesful"
         pkill -f "$PYTHON_SCRIPT"
-        exit 0
+        is_auth="1"
     fi
 }
 
@@ -36,7 +42,7 @@ check_variable_changes() {
 run_python_script &
 
 # Monitorear cambios en la variable del archivo de configuración
-while true; do
+while [ "$is_auth" -eq 0 ]; do
     sleep 1
     check_variable_changes
 done
