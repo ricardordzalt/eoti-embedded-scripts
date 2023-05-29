@@ -1,6 +1,6 @@
 #!/bin/bash
 
-config_file="/etc/eoti/local.conf"
+config_file="$HOME/.eoti/local.conf"
 
 # Verificar si el archivo de configuración existe
 if [ -f "$config_file" ]; then
@@ -16,5 +16,7 @@ if [ -f "$config_file" ]; then
     has_token="0"
   fi
 else
+    mkdir -p "$(dirname "$config_file")"
+    touch "$config_file"
     has_token="0"
 fi

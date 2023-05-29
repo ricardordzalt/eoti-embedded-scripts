@@ -4,8 +4,8 @@
 source ./check_startup.sh
 # Verificar el resultado y ejecutar el siguiente script
 if [ "$has_token" -eq 0 ]; then
-  source ./start_access_point.sh
-  python3 ./create_http_server.sh
+  # source ./start_access_point.sh
+  source ./create_http_server.sh
 else
   source ./connect_to_server.sh
 fi
