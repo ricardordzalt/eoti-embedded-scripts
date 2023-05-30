@@ -28,4 +28,6 @@ sudo ip addr add 192.168.100.1/24 dev wlan0
 sudo sysctl net.ipv4.ip_forward=1
 
 # Configurar NAT para redireccionar el tráfico del punto de acceso a la conexión a Internet
-sudo iptables -t nat -A POSTROUTING -o <interface_de_red_conexion_internet> -j MASQUERADE
+sudo iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+
+echo "Punto de acceso listo!"
