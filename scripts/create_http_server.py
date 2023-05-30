@@ -84,7 +84,7 @@ def update_config_file(variable_name, new_value):
 
 
 def run_server():
-    host = '192.168.100.202'
+    host = '192.168.100.1'
     port = 8000
     server_address = (host, port)
     httpd = HTTPServer(server_address, RequestHandler)
