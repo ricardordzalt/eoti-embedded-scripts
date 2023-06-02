@@ -3,6 +3,32 @@ import os
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+
+def connect_to_wifi(ssid, password, country):
+    # Generar el archivo de configuración wpa_supplicant.conf
+    config = f'''
+    country="{country}"
+    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    update_config=1
+
+    network={{
+        ssid="{ssid}"
+        psk="{password}"
+        key_mgmt=WPA-PSK
+        proto=RSN WPA
+        pairwise=CCMP TKIP
+        group=CCMP TKIP
+        priority=1
+    }}
+    '''
+    
+    # Guardar el archivo de configuración
+    with open('/etc/wpa_supplicant/wpa_supplicant.conf', 'w') as f:
+        f.write(config)
+
+    # Reiniciar el servicio wpa_supplicant
+    subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan0', 'reconfigure'])
+
 def configure_wifi(ssid, password):
     # Desconfigurar el punto de acceso
     subprocess.run(['sudo', 'systemctl', 'stop', 'hostapd'])
@@ -23,6 +49,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             ssid = params.get('ssid')
             password = params.get('password')
             token = params.get('token')
+            country = params.get('country')
 
             # Configurar la conexión Wi-Fi
             configure_wifi(ssid, password)
@@ -30,8 +57,10 @@ class RequestHandler(BaseHTTPRequestHandler):
             
             response = send_auth_request(token)
             if response == 200:
-                print('Token enviado correctamente. Actualizando la variable is_auth en el archivo de configuración...')
-                update_config_file('is_auth', 'true')
+
+                # Conectar a la red WiFi
+                connect_to_wifi(ssid, password, country)
+                
             else:
                 print(f'Error al enviar el token. Código de respuesta: {response}')
 
