@@ -2,7 +2,7 @@ import json
 import os
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
-
+import urllib.request
 
 def connect_to_wifi(ssid, password, country):
     # Generar el archivo de configuración wpa_supplicant.conf
@@ -29,6 +29,15 @@ def connect_to_wifi(ssid, password, country):
     # Reiniciar el servicio wpa_supplicant
     subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan0', 'reconfigure'])
 
+def check_wifi_connection():
+    result = subprocess.run(['iwconfig', 'wlan0'], capture_output=True, text=True)
+    output = result.stdout
+
+    if 'ESSID:"' in output and 'Access Point: ' in output:
+        return True
+    
+    return False
+
 def configure_wifi(ssid, password):
     # Desconfigurar el punto de acceso
     subprocess.run(['sudo', 'systemctl', 'stop', 'hostapd'])
@@ -50,17 +59,18 @@ class RequestHandler(BaseHTTPRequestHandler):
             password = params.get('password')
             token = params.get('token')
             country = params.get('country')
-
-            # Configurar la conexión Wi-Fi
-            configure_wifi(ssid, password)
-
             
             response = send_auth_request(token)
             if response == 200:
-
                 # Conectar a la red WiFi
                 connect_to_wifi(ssid, password, country)
-                
+
+                # Llamada a la función para comprobar la conexión WiFi
+                wifi_connected = check_wifi_connection()
+
+                if wifi_connected:
+                    send_auth_request(token)
+
             else:
                 print(f'Error al enviar el token. Código de respuesta: {response}')
 
