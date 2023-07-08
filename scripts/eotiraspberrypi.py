@@ -1,115 +1,167 @@
 import asyncio
-import json
+import cv2
 import socketio
-import subprocess
-import time
-
-from collections import OrderedDict
-from picamera2 import Picamera2
-from picamera2.encoders import H264Encoder
-from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.rtcrtpparameters import RTCRtpCodecCapability
-from pitrack import H264EncodedStreamTrack
-
-codec_parameters = OrderedDict(
-    [
-        ("packetization-mode", "1"),
-        ("level-asymmetry-allowed", "1"),
-        ("profile-level-id", "42001f"),
-    ]
+from aiortc import (
+    RTCPeerConnection,
+    RTCSessionDescription,
+    VideoStreamTrack,
+    RTCIceServer,
+    RTCConfiguration,
+    RTCIceCandidate,
+    MediaStreamTrack,
 )
+from aiortc.contrib.media import PlayerStreamTrack, MediaPlayer
+import numpy as np
+        
+# Configuración del servidor de señalización
+SIGNALING_SERVER = 'http://192.168.100.8:3000'
+stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
+config = RTCConfiguration(iceServers=[stun_server])
 
-pi_capability = RTCRtpCodecCapability(
-    mimeType="video/H264", clockRate=90000, channels=None, parameters=codec_parameters
-)
+class VideoFrame:
+    def __init__(self, width, height, data):
+        self.width = width
+        self.height = height
+        self.data = data
 
-preferences = [pi_capability]
+    def to_ndarray(self):
+        return np.frombuffer(self.data, np.uint8).reshape((self.height, self.width, 3))
 
-picam2 = Picamera2()
-video_config = picam2.create_video_configuration()
-picam2.configure(video_config)
+    @staticmethod
+    def from_ndarray(ndarray, format="bgr24"):
+        height, width, channels = ndarray.shape
+        if format == "bgr24":
+            data = ndarray.tobytes()
+        elif format == "rgb24":
+            data = cv2.cvtColor(ndarray, cv2.COLOR_RGB2BGR).tobytes()
+        else:
+            raise ValueError(f"Unsupported format: {format}")
 
-encoder = H264Encoder(10000000)
+        return VideoFrame(width, height, data)
 
-picam2.start_recording(encoder, 'test.h264')
-# time.sleep(10)
-# picam2.stop_recording()
+class VideoTrack(VideoStreamTrack):
+    def __init__(self):
+        super().__init__()
+        self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
 
-# Crear una instancia de SocketIO
-sio = socketio.AsyncClient()
+    async def recv(self):
+        pts, time_base = await self.next_timestamp()
 
+        # Read the next frame using cv2.VideoCapture.read()
+        ret, img = self.video_capture.read()
+        print("recv1")
+        if ret:
+            # Convert the image to the desired format
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # Create a new VideoFrame
+            new_frame = VideoFrame.from_ndarray(img, format="rgb24")
+            new_frame.pts = pts
+            new_frame.time_base = time_base
 
-def get_mac_address():
-    # Obtener la dirección MAC del dispositivo Linux
-    result = subprocess.run(["ifconfig", "-a"], capture_output=True, text=True)
-    ifconfig_output = result.stdout
-    # Analizar la salida de ifconfig para encontrar la dirección MAC
-    mac_address = None
-    for line in ifconfig_output.splitlines():
-        if "ether" in line:
-            mac_address = line.strip().split(" ")[1]
-            break
-    return mac_address
-
-
-@sio.event
-async def newCall(data):
-    rtcMessage = data['rtcMessage']
-    rtc_sdp = rtcMessage['sdp']
-    rtc_type = rtcMessage['type']
-    # Crear una instancia de RTCPeerConnection
-    pc = RTCPeerConnection()
-    userId = data['userId']
-    # Configura el evento onicecandidate para manejar los candidatos ICE
-    @pc.on("ICEcandidate")
-    async def on_icecandidate(candidate):
-      if candidate:
-        # Envía el candidato ICE al cliente remoto
-        await sio.emit('ICEcandidate', {
-            'userId': userId,
-            'rtcMessage': candidate.to_sdp()
-        })
-
-    # Establecer la descripción remota
-    offer = RTCSessionDescription(sdp=rtc_sdp, type=rtc_type)
-    await pc.setRemoteDescription(offer)
-
-    for t in pc.getTransceivers():
-      print(t)
-      # if t.kind == "audio" and audio and audio.audio:
-      #   pc.addTrack(audio.audio)
-      if t.kind == "video" and video_track:
-        print("video")
-        t.setCodecPreferences(preferences)
-        pc.addTrack(encoder)
-
-    video_track = H264EncodedStreamTrack(30)
-    pc.addTrack(video_track)
-
-    # Crear una respuesta
-    answer = await pc.createAnswer()
-
-    # Establecer la descripción local
-    await pc.setLocalDescription(answer)
-    response = {
-      'rtcMessage': {
-          'sdp': pc.localDescription.sdp,
-          'type': pc.localDescription.type
-      },
-      'userId': userId
-    }
-    await sio.emit('answerCall', response)
+            # # Show the captured frame using cv2.imshow()
+            cv2.imshow("Captured Frame", img)
+            cv2.waitKey(1)
+            return new_frame
+        else:
+            # Video ended, close the connection
+            return None
 
 
-async def main():
-    auth_data = {
-        'userId': get_mac_address()
-    }
-    # Conectar al servidor socketio
-    await sio.connect('http://192.168.100.7:3000', auth=auth_data)
+async def run():
+    # Inicializar el socketio
+    sio = socketio.AsyncClient()
+    auth = { 'userId': 'webrtc2' }
+    # Conectar al servidor de señalización
+    await sio.connect(SIGNALING_SERVER, auth=auth)
+
+    # Crear una nueva conexión de pares
+    pc = RTCPeerConnection(configuration=config)
+
+    @sio.event
+    async def newCall(data):
+        print("newcall")
+        video_track = VideoTrack()
+        pc.addTrack(video_track)  # Agrega la pista de video al objeto RTCPeerConnection
+        rtcMessage = data['rtcMessage']
+        # Crear la descripción de la sesión remota
+        remote_desc = RTCSessionDescription(sdp=rtcMessage['sdp'], type=rtcMessage['type'])
+        # Establecer la descripción de la sesión remota
+        await pc.setRemoteDescription(remote_desc)
+        answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+
+        @pc.on("icecandidate")
+        async def on_icecandidate(event):
+            print("event ice")
+            candidate = event.candidate
+            if candidate:
+                # Enviar el candidato ICE al servidor de señalización
+                response = {
+                    'userId': 'webrtc1',
+                    'rtcMessage': {
+                        'candidate': candidate.candidate,
+                        'sdpMid': candidate.sdpMid,
+                        'sdpMLineIndex': candidate.sdpMLineIndex
+                    }
+                }
+                await sio.emit('ICEcandidate', response)
+
+
+        response = {'userId': 'webrtc1', 'rtcMessage': {'sdp': pc.localDescription.sdp, 'type': pc.localDescription.type} }
+        await sio.emit('answerCall', response)
+
+    @sio.event
+    async def ICEcandidate(data):
+        rtcMessage = data['rtcMessage']
+        candidate = RTCIceCandidate(rtcMessage['candidate'], rtcMessage['sdpMid'], rtcMessage['sdpMLineIndex'])
+        await pc.addIceCandidate(candidate)
+
+    # Evento de conexión exitosa con el servidor
+    @sio.event
+    def connect():
+        print('Conexión establecida con el servidor')
+        # Aquí puedes ejecutar la lógica adicional cuando te conectas al servidor
+        # ...
+
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        print("1connectionstatechange", pc.connectionState)
+
+    @pc.on("signalingstatechange")
+    async def on_connectionstatechange():
+        print("2signalingstatechange", pc.iceConnectionState)
+
+    @pc.on("icecandidateerror")
+    async def on_connectionstatechange():
+        print("3signalingstatechange", pc.iceGatheringState)
+
+
+    @pc.on("track")
+    async def on_track(event):
+        print("Receiving video track...")
+        # while True:
+        #     frame = await event.recv()
+        #     img = frame.to_ndarray(format="bgr24")
+        #     cv2.imshow("Stream", img)
+        #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
+        #         break
+        # cv2.destroyAllWindows()
+
+
     await sio.wait()
 
+# async def recv_track():
+#     print("recv_Track")
 
+# Ejecutar el programa
 if __name__ == '__main__':
+    # asyncio.ensure_future(recv_track())
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    try:
+        loop.run_until_complete(run())
+    except KeyboardInterrupt:
+        print("error")
+        pass
+    finally:
+        loop.close()
+
