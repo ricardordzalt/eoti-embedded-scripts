@@ -76,8 +76,8 @@ async def run():
 
     # Crear una nueva conexión de pares
     pc = RTCPeerConnection(configuration=config)
-        video_track = VideoTrack()
-        pc.addTrack(video_track)  # Agrega la pista de video al objeto RTCPeerConnection
+    video_track = VideoTrack()
+    pc.addTrack(video_track)  # Agrega la pista de video al objeto RTCPeerConnection
 
     @sio.event
     async def newCall(data):
