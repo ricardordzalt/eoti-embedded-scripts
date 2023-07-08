@@ -59,8 +59,8 @@ class VideoTrack(VideoStreamTrack):
             new_frame.time_base = time_base
 
             # # Show the captured frame using cv2.imshow()
-            cv2.imshow("Captured Frame", img)
-            cv2.waitKey(1)
+            # cv2.imshow("Captured Frame", img)
+            # cv2.waitKey(1)
             return new_frame
         else:
             # Video ended, close the connection
