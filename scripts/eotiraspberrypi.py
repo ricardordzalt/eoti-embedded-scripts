@@ -76,12 +76,12 @@ async def run():
 
     # Crear una nueva conexión de pares
     pc = RTCPeerConnection(configuration=config)
+        video_track = VideoTrack()
+        pc.addTrack(video_track)  # Agrega la pista de video al objeto RTCPeerConnection
 
     @sio.event
     async def newCall(data):
         print("newcall")
-        video_track = VideoTrack()
-        pc.addTrack(video_track)  # Agrega la pista de video al objeto RTCPeerConnection
         rtcMessage = data['rtcMessage']
         # Crear la descripción de la sesión remota
         remote_desc = RTCSessionDescription(sdp=rtcMessage['sdp'], type=rtcMessage['type'])
