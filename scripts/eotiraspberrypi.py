@@ -49,9 +49,9 @@ class VideoTrack(VideoStreamTrack):
 
         # Read the next frame using cv2.VideoCapture.read()
         ret, img = self.video_capture.read()
-        print("recv1")
+        print("ret", ret)
+        print("img", img)
         if ret:
-            print("recv1")
             # Convert the image to the desired format
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             # Create a new VideoFrame
