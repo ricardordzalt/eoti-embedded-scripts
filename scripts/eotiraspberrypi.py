@@ -139,13 +139,13 @@ async def run():
     @pc.on("track")
     async def on_track(event):
         print("Receiving video track...")
-        # while True:
-        #     frame = await event.recv()
-        #     img = frame.to_ndarray(format="bgr24")
-        #     cv2.imshow("Stream", img)
-        #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
-        #         break
-        # cv2.destroyAllWindows()
+        while True:
+            frame = await event.recv()
+            img = frame.to_ndarray(format="bgr24")
+            cv2.imshow("Stream", img)
+            if cv2.waitKey(1) == 27:  # Presiona Esc para salir
+                break
+        cv2.destroyAllWindows()
 
 
     await sio.wait()
