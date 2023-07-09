@@ -12,7 +12,8 @@ from aiortc import (
 )
 from aiortc.contrib.media import PlayerStreamTrack, MediaPlayer
 import numpy as np
-        
+from picamera2 import Picamera2
+
 # Configuración del servidor de señalización
 SIGNALING_SERVER = 'http://192.168.100.8:3000'
 stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
@@ -42,30 +43,28 @@ class VideoFrame:
 class VideoTrack(VideoStreamTrack):
     def __init__(self):
         super().__init__()
-        self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
+        # self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
+        picam2 = Picamera2()
+        picam2.preview_configuration.main.size = (1280,720)
+        picam2.preview_configuration.main.format = "RGB888"
+        picam2.preview_configuration.align()
+        picam2.configure("preview")
+        picam2.start()
 
     async def recv(self):
         pts, time_base = await self.next_timestamp()
+        # Convert the image to the desired format
+        im= picam2.capture_array()
+        # Create a new VideoFrame
+        # new_frame = VideoFrame.from_ndarray(img, format="rgb24")
+        new_frame = im
+        new_frame.pts = pts
+        new_frame.time_base = time_base
 
-        # Read the next frame using cv2.VideoCapture.read()
-        ret, img = self.video_capture.read()
-        print("ret", ret)
-        print("img", img)
-        if ret:
-            # Convert the image to the desired format
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # Create a new VideoFrame
-            new_frame = VideoFrame.from_ndarray(img, format="rgb24")
-            new_frame.pts = pts
-            new_frame.time_base = time_base
-
-            # # Show the captured frame using cv2.imshow()
-            # cv2.imshow("Captured Frame", img)
-            # cv2.waitKey(1)
-            return new_frame
-        else:
-            # Video ended, close the connection
-            return None
+        # # Show the captured frame using cv2.imshow()
+        # cv2.imshow("Captured Frame", img)
+        # cv2.waitKey(1)
+        return new_frame
 
 
 async def run():
@@ -140,7 +139,7 @@ async def run():
     @pc.on("track")
     async def on_track(event):
         print("Receiving video track...")
-        while True:
+        while False:
             frame = await event.recv()
             img = frame.to_ndarray(format="bgr24")
             cv2.imshow("Stream", img)
@@ -165,4 +164,3 @@ if __name__ == '__main__':
         pass
     finally:
         loop.close()
-
