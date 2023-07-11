@@ -4,68 +4,52 @@ import socketio
 from aiortc import (
     RTCPeerConnection,
     RTCSessionDescription,
-    VideoStreamTrack,
     RTCIceServer,
     RTCConfiguration,
     RTCIceCandidate,
     MediaStreamTrack,
+    VideoStreamTrack,
 )
 from aiortc.contrib.media import PlayerStreamTrack, MediaPlayer
 import numpy as np
-from picamera2 import Picamera2
+import av
+from fractions import Fraction
 
 # Configuración del servidor de señalización
-SIGNALING_SERVER = 'http://192.168.100.8:3000'
+SIGNALING_SERVER = 'http://192.168.100.11:3000'
 stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
 config = RTCConfiguration(iceServers=[stun_server])
 
-class VideoFrame:
-    def __init__(self, width, height, data):
-        self.width = width
-        self.height = height
-        self.data = data
-
-    def to_ndarray(self):
-        return np.frombuffer(self.data, np.uint8).reshape((self.height, self.width, 3))
-
-    @staticmethod
-    def from_ndarray(ndarray, format="bgr24"):
-        height, width, channels = ndarray.shape
-        if format == "bgr24":
-            data = ndarray.tobytes()
-        elif format == "rgb24":
-            data = cv2.cvtColor(ndarray, cv2.COLOR_RGB2BGR).tobytes()
-        else:
-            raise ValueError(f"Unsupported format: {format}")
-
-        return VideoFrame(width, height, data)
-
 class VideoTrack(VideoStreamTrack):
+    kind = 'video'
+
     def __init__(self):
         super().__init__()
-        # self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
-        picam2 = Picamera2()
-        picam2.preview_configuration.main.size = (1280,720)
-        picam2.preview_configuration.main.format = "RGB888"
-        picam2.preview_configuration.align()
-        picam2.configure("preview")
-        picam2.start()
+        self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
+        self.pts = 0  # Inicializar el valor de pts
+        self.time_base = Fraction(1, 30)  # Establecer time_base según el FPS deseado
 
     async def recv(self):
-        pts, time_base = await self.next_timestamp()
-        # Convert the image to the desired format
-        im= picam2.capture_array()
-        # Create a new VideoFrame
-        # new_frame = VideoFrame.from_ndarray(img, format="rgb24")
-        new_frame = im
-        new_frame.pts = pts
-        new_frame.time_base = time_base
+        try:
+            # Capture a frame from the video
+            ret, img = self.video_capture.read()
 
-        # # Show the captured frame using cv2.imshow()
-        # cv2.imshow("Captured Frame", img)
-        # cv2.waitKey(1)
-        return new_frame
+            if not ret or img is None:
+                # No se pudo capturar ningún cuadro de video
+                return None
 
+            # Create a new VideoFrame
+            new_frame = av.VideoFrame.from_ndarray(img)
+            new_frame.pts = self.pts
+            new_frame.time_base = self.time_base
+            self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
+
+            # Return the VideoFrame
+            return new_frame
+
+        except Exception as e:
+            # Código para manejar cualquier otra excepción
+            print("Ocurrió un error:", str(e))
 
 async def run():
     # Inicializar el socketio
@@ -76,17 +60,24 @@ async def run():
 
     # Crear una nueva conexión de pares
     pc = RTCPeerConnection(configuration=config)
-    video_track = VideoTrack()
-    pc.addTrack(video_track)  # Agrega la pista de video al objeto RTCPeerConnection
+
 
     @sio.event
     async def newCall(data):
         print("newcall")
+
+
         rtcMessage = data['rtcMessage']
         # Crear la descripción de la sesión remota
         remote_desc = RTCSessionDescription(sdp=rtcMessage['sdp'], type=rtcMessage['type'])
         # Establecer la descripción de la sesión remota
         await pc.setRemoteDescription(remote_desc)
+
+
+        video_track = VideoTrack()
+        video_sender = pc.addTrack(video_track)
+        video_sender.direction = "sendonly"
+
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
@@ -112,8 +103,9 @@ async def run():
 
     @sio.event
     async def ICEcandidate(data):
-        rtcMessage = data['rtcMessage']
-        candidate = RTCIceCandidate(rtcMessage['candidate'], rtcMessage['sdpMid'], rtcMessage['sdpMLineIndex'])
+        # rtcMessage = data['rtcMessage']
+        candidate = data['rtcMessage']
+        # candidate = RTCIceCandidate(rtcMessage['candidate'], rtcMessage['sdpMid'], rtcMessage['sdpMLineIndex'])
         await pc.addIceCandidate(candidate)
 
     # Evento de conexión exitosa con el servidor
@@ -138,20 +130,18 @@ async def run():
 
     @pc.on("track")
     async def on_track(event):
-        print("Receiving video track...")
-        while False:
-            frame = await event.recv()
-            img = frame.to_ndarray(format="bgr24")
-            cv2.imshow("Stream", img)
-            if cv2.waitKey(1) == 27:  # Presiona Esc para salir
-                break
-        cv2.destroyAllWindows()
+        print("event", event)
+        # while true:
+        #     frame = await event.recv()
+        #     print("frame", frame)
+        #     img = frame.to_ndarray(format="bgr24")
+            #     cv2.imshow("Stream", img)
+            #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
+            #         break
+        # cv2.destroyAllWindows()
 
 
     await sio.wait()
-
-# async def recv_track():
-#     print("recv_Track")
 
 # Ejecutar el programa
 if __name__ == '__main__':
