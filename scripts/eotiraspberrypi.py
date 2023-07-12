@@ -14,29 +14,64 @@ from aiortc.contrib.media import PlayerStreamTrack, MediaPlayer
 import numpy as np
 import av
 from fractions import Fraction
+from picamera2 import Picamera2
+
+face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
 
 # Configuración del servidor de señalización
-SIGNALING_SERVER = 'http://192.168.100.11:3000'
+SIGNALING_SERVER = 'http://192.168.100.8:3000'
 stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
 config = RTCConfiguration(iceServers=[stun_server])
 
+## VideoTrack class to capture camera with opencv
+# class VideoTrack(VideoStreamTrack):
+#     kind = 'video'
+
+#     def __init__(self):
+#         super().__init__()
+#         self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
+#         self.pts = 0  # Inicializar el valor de pts
+#         self.time_base = Fraction(1, 30)  # Establecer time_base según el FPS deseado
+
+#     async def recv(self):
+#         try:
+#             # Capture a frame from the video
+#             ret, img = self.video_capture.read()
+
+#             if not ret or img is None:
+#                 # No se pudo capturar ningún cuadro de video
+#                 return None
+
+#             # Create a new VideoFrame
+#             new_frame = av.VideoFrame.from_ndarray(img)
+#             new_frame.pts = self.pts
+#             new_frame.time_base = self.time_base
+#             self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
+
+#             # Return the VideoFrame
+#             return new_frame
+
+#         except Exception as e:
+#             # Código para manejar cualquier otra excepción
+#             print("Ocurrió un error:", str(e))
+
+## VideoTrack class to capture camera with picamera2
 class VideoTrack(VideoStreamTrack):
     kind = 'video'
 
     def __init__(self):
         super().__init__()
-        self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
+
+        self.video_capture = Picamera2()
+        self.video_capture.picam2.configure(picam2.create_preview_configuration(main={"format": 'XRGB8888', "size": (640, 480)}))
+        self.video_capture.picam2.start()
         self.pts = 0  # Inicializar el valor de pts
         self.time_base = Fraction(1, 30)  # Establecer time_base según el FPS deseado
 
     async def recv(self):
         try:
             # Capture a frame from the video
-            ret, img = self.video_capture.read()
-
-            if not ret or img is None:
-                # No se pudo capturar ningún cuadro de video
-                return None
+            img = picam2.capture_array()
 
             # Create a new VideoFrame
             new_frame = av.VideoFrame.from_ndarray(img)
@@ -50,6 +85,8 @@ class VideoTrack(VideoStreamTrack):
         except Exception as e:
             # Código para manejar cualquier otra excepción
             print("Ocurrió un error:", str(e))
+
+
 
 async def run():
     # Inicializar el socketio
