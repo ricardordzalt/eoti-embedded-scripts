@@ -63,7 +63,7 @@ class VideoTrack(VideoStreamTrack):
         super().__init__()
 
         self.video_capture = Picamera2()
-        self.video_capture.configure(self.video_capture.create_preview_configuration(main={"format": 'XRGB8888', "size": (640, 480)}))
+        # self.video_capture.configure(self.video_capture.create_preview_configuration(main={"format": 'XRGB8888', "size": (640, 480)}))
         self.video_capture.start()
         self.pts = 0  # Inicializar el valor de pts
         self.time_base = Fraction(1, 30)  # Establecer time_base según el FPS deseado
