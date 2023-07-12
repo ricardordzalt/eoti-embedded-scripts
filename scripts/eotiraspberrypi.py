@@ -73,10 +73,11 @@ class VideoTrack(VideoStreamTrack):
             # Capture a frame from the video
             print("1")
             img = self.video_capture.capture_array()
+            grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             print("2")
 
             # Create a new VideoFrame
-            new_frame = av.VideoFrame.from_ndarray(img)
+            new_frame = av.VideoFrame.from_ndarray(grey)
             print("3")
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
