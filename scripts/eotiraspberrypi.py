@@ -71,14 +71,14 @@ class VideoTrack(VideoStreamTrack):
     async def recv(self):
         try:
             # Capture a frame from the video
-            print("1")
             img = self.video_capture.capture_array()
             grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            print("2")
+            faces = face_detector.detectMultiScale(grey, 1.1, 5)
+            if(len(faces) > 0):
+                print(len(faces), "face/s detected, this data can be send by socket")
             color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
             # Create a new VideoFrame
             new_frame = av.VideoFrame.from_ndarray(color_img)
-            print("3")
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
             self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
