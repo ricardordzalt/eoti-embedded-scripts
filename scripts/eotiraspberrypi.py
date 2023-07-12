@@ -75,9 +75,9 @@ class VideoTrack(VideoStreamTrack):
             img = self.video_capture.capture_array()
             grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             print("2")
-
+            color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
             # Create a new VideoFrame
-            new_frame = av.VideoFrame.from_ndarray(grey)
+            new_frame = av.VideoFrame.from_ndarray(color_img)
             print("3")
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
