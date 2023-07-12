@@ -71,10 +71,13 @@ class VideoTrack(VideoStreamTrack):
     async def recv(self):
         try:
             # Capture a frame from the video
+            print("1")
             img = self.video_capture.capture_array()
+            print("2")
 
             # Create a new VideoFrame
             new_frame = av.VideoFrame.from_ndarray(img)
+            print("3")
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
             self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
