@@ -16,7 +16,7 @@ import av
 from fractions import Fraction
 from picamera2 import Picamera2
 
-face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 # Configuración del servidor de señalización
 SIGNALING_SERVER = 'http://192.168.100.8:3000'
