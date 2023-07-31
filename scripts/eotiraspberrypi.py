@@ -49,30 +49,21 @@ class VideoTrack(VideoStreamTrack):
         try:
             # Capture a frame from the video
             img = self.video_capture.capture_array()
-            # grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-            # color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
-            # # Create a new VideoFrame
-            # new_frame = av.VideoFrame.from_ndarray(color_img)
-            # new_frame.pts = self.pts
-            # new_frame.time_base = self.time_base
-            # self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
-
-            # # Return the VideoFrame
-            # return new_frame
-
-            
             # Convert RGBA to RGB if needed
             if img.shape[2] == 4:
                 img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
 
-            # Create a new VideoFrame
+            # Draw rectangles around the detected faces
+            for (x, y, w, h) in self.face_coordinates:
+                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            # Create a new VideoFrame with the modified frame
             new_frame = av.VideoFrame.from_ndarray(img)
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
-            self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
+            self.pts += 1
 
-            # Return the VideoFrame
+            # Return the VideoFrame with the detected faces drawn on it
             return new_frame
 
         except Exception as e:
@@ -86,6 +77,10 @@ class VideoTrack(VideoStreamTrack):
                 img = self.video_capture.capture_array()
                 grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
                 faces = face_cascade.detectMultiScale(grey, 1.1, 3)
+
+                # Save the detected face coordinates
+                self.face_coordinates = [list(face) for face in faces]
+
                 if len(faces) > 0:
                     print(len(faces), "face/s detected, this data can be sent by socket")
             except Exception as e:
