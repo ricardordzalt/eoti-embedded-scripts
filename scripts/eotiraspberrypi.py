@@ -91,6 +91,7 @@ class VideoTrack(VideoStreamTrack):
             print("Ocurrió un error:", str(e))
 
 
+video_track = VideoTrack()
 
 async def run():
     # Inicializar el socketio
@@ -124,7 +125,6 @@ async def run():
 
         # Crear un nuevo RTCPeerConnection y VideoTrack
         pc = RTCPeerConnection(configuration=config)
-        video_track = VideoTrack()
         video_sender = pc.addTrack(video_track)
         video_sender.direction = "sendonly"
 
