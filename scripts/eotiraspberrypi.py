@@ -15,6 +15,7 @@ import numpy as np
 import av
 from fractions import Fraction
 from picamera2 import Picamera2
+import threading
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
@@ -22,6 +23,7 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fronta
 SIGNALING_SERVER = 'https://eoti-server.onrender.com'
 stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
 config = RTCConfiguration(iceServers=[stun_server])
+
 
 ## VideoTrack class to capture camera with picamera2
 class VideoTrack(VideoStreamTrack):
@@ -36,29 +38,22 @@ class VideoTrack(VideoStreamTrack):
         self.pts = 0  # Inicializar el valor de pts
         self.time_base = Fraction(1, 30)  # Establecer time_base según el FPS deseado
 
-        # Run face detection code on initialization
-        self.detect_faces()
+        # Create a flag to stop the face detection thread
+        self._stop_flag = threading.Event()
 
-    def detect_faces(self):
-        try:
-            # Capture a frame from the video
-            img = self.video_capture.capture_array()
-            grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(grey, 1.1, 3)
-            if len(faces) > 0:
-                print(len(faces), "face/s detected, this data can be sent by socket")
-        except Exception as e:
-            # Código para manejar cualquier otra excepción
-            print("Ocurrió un error during face detection:", str(e))
+        # Start the face detection thread
+        self.face_detection_thread = threading.Thread(target=self.detect_faces)
+        self.face_detection_thread.start()
 
     async def recv(self):
         try:
             # Capture a frame from the video
             img = self.video_capture.capture_array()
             grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            
-            # Create a new VideoFrame using the grayscale image
-            new_frame = av.VideoFrame.from_ndarray(grey)
+
+            color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
+            # Create a new VideoFrame
+            new_frame = av.VideoFrame.from_ndarray(color_img)
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
             self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
@@ -69,6 +64,27 @@ class VideoTrack(VideoStreamTrack):
         except Exception as e:
             # Código para manejar cualquier otra excepción
             print("Ocurrió un error:", str(e))
+
+    def detect_faces(self):
+        while not self._stop_flag.is_set():
+            try:
+                # Capture a frame from the video
+                img = self.video_capture.capture_array()
+                grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                faces = face_cascade.detectMultiScale(grey, 1.1, 3)
+                if len(faces) > 0:
+                    print(len(faces), "face/s detected, this data can be sent by socket")
+            except Exception as e:
+                # Código para manejar cualquier otra excepción
+                print("Ocurrió un error during face detection:", str(e))
+
+    def stop(self):
+        # Set the stop flag to terminate the face detection thread
+        self._stop_flag.set()
+        # Wait for the thread to finish
+        self.face_detection_thread.join()
+
+# Resto del código sin cambios...
 
 
 # Crear una instancia de VideoTrack al iniciar el script
