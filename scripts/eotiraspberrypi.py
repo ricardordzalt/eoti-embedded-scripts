@@ -121,7 +121,7 @@ async def run():
         has_video_track = False
         for transceiver in pc.getTransceivers():
             if transceiver.kind == "video" and transceiver.sender.track:
-                has_video_track = true
+                has_video_track = True
                 break
 
         # Si no se ha agregado un track de video, crea uno nuevo y agrégalo
