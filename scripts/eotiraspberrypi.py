@@ -61,6 +61,10 @@ class VideoTrack(VideoStreamTrack):
             # # Return the VideoFrame
             # return new_frame
 
+            
+            # Convert RGBA to RGB if needed
+            if img.shape[2] == 4:
+                img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
 
             # Create a new VideoFrame
             new_frame = av.VideoFrame.from_ndarray(img)
