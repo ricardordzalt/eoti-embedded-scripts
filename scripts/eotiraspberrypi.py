@@ -127,9 +127,9 @@ async def run():
         # Si no se ha agregado un track de video, crea uno nuevo y agrégalo
         if has_video_track == False:
             video_sender = pc.addTrack(video_track)
+            video_sender.direction = "sendonly"
 
 
-        video_sender.direction = "sendonly"
 
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
