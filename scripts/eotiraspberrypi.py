@@ -102,7 +102,7 @@ async def run():
 
     # Crear una nueva conexión de pares
     pc = None
-    video_track = None
+    # video_track = None
 
     # # Crear una nueva conexión de pares
     # pc = RTCPeerConnection(configuration=config)
