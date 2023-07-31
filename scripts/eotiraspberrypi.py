@@ -110,7 +110,7 @@ async def run():
 
     @sio.event
     async def newCall(data):
-        nonlocal pc, video_track
+        nonlocal pc
         print("newcall")
 
 
