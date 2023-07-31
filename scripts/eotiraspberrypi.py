@@ -92,11 +92,11 @@ class VideoTrack(VideoStreamTrack):
                 # Código para manejar cualquier otra excepción
                 print("Ocurrió un error during face detection:", str(e))
 
-    def stop(self):
-        # Set the stop flag to terminate the face detection thread
-        self._stop_flag.set()
-        # Wait for the thread to finish
-        self.face_detection_thread.join()
+    # def stop(self):
+    #     # Set the stop flag to terminate the face detection thread
+    #     self._stop_flag.set()
+    #     # Wait for the thread to finish
+    #     self.face_detection_thread.join()
 
 
 # Crear una instancia de VideoTrack al iniciar el script
