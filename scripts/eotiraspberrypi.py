@@ -202,7 +202,7 @@ async def run():
         if pc:
             # Cerrar la conexión RTCPeerConnection
             pc.close()
-            await pc.wait_closed()
+            # await pc.wait_closed()
             pc = None
 
         if video_track:
