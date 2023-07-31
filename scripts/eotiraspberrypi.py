@@ -103,6 +103,32 @@ async def run():
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
+
+        @pc.on("connectionstatechange")
+        async def on_connectionstatechange():
+            print("1connectionstatechange", pc.connectionState)
+
+        @pc.on("signalingstatechange")
+        async def on_connectionstatechange():
+            print("2signalingstatechange", pc.iceConnectionState)
+
+        @pc.on("icecandidateerror")
+        async def on_connectionstatechange():
+            print("3signalingstatechange", pc.iceGatheringState)
+
+
+        @pc.on("track")
+        async def on_track(event):
+            print("event", event)
+            # while true:
+            #     frame = await event.recv()
+            #     print("frame", frame)
+            #     img = frame.to_ndarray(format="bgr24")
+                #     cv2.imshow("Stream", img)
+                #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
+                #         break
+            # cv2.destroyAllWindows()
+            
         @pc.on("icecandidate")
         async def on_icecandidate(event):
             print("event ice")
@@ -136,32 +162,6 @@ async def run():
         print('Conexión establecida con el servidor')
         # Aquí puedes ejecutar la lógica adicional cuando te conectas al servidor
         # ...
-
-    @pc.on("connectionstatechange")
-    async def on_connectionstatechange():
-        print("1connectionstatechange", pc.connectionState)
-
-    @pc.on("signalingstatechange")
-    async def on_connectionstatechange():
-        print("2signalingstatechange", pc.iceConnectionState)
-
-    @pc.on("icecandidateerror")
-    async def on_connectionstatechange():
-        print("3signalingstatechange", pc.iceGatheringState)
-
-
-    @pc.on("track")
-    async def on_track(event):
-        print("event", event)
-        # while true:
-        #     frame = await event.recv()
-        #     print("frame", frame)
-        #     img = frame.to_ndarray(format="bgr24")
-            #     cv2.imshow("Stream", img)
-            #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
-            #         break
-        # cv2.destroyAllWindows()
-        
     async def close_connection():
         nonlocal pc
         if pc:
