@@ -9,6 +9,7 @@ from aiortc import (
     RTCIceCandidate,
     MediaStreamTrack,
     VideoStreamTrack,
+    RTCRtpSender
 )
 from aiortc.contrib.media import PlayerStreamTrack, MediaPlayer
 import numpy as np
@@ -104,6 +105,7 @@ async def run():
     pc = RTCPeerConnection(configuration=config)
 
 
+
     @sio.event
     async def newCall(data):
         print("newcall")
@@ -115,8 +117,18 @@ async def run():
         # Establecer la descripción de la sesión remota
         await pc.setRemoteDescription(remote_desc)
 
+        # Verifica si ya hay un track de video agregado
+        has_video_track = False
+        for transceiver in pc.getTransceivers():
+            if transceiver.kind == "video" and transceiver.sender.track:
+                has_video_track = true
+                break
 
-        video_sender = pc.addTrack(video_track)
+        # Si no se ha agregado un track de video, crea uno nuevo y agrégalo
+        if has_video_track == False:
+            video_sender = pc.addTrack(video_track)
+
+
         video_sender.direction = "sendonly"
 
         answer = await pc.createAnswer()
