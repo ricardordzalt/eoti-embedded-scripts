@@ -172,8 +172,7 @@ async def run():
     async def userDisconnect():
         print("Desconexión del usuario")
         # Function to close the current RTCPeerConnection
-        async def close_connection():
-            global pc
+        global pc
             if pc:
                 pc.close()
                 await pc.wait_closed()
