@@ -41,7 +41,7 @@ class VideoTrack(VideoStreamTrack):
             # Capture a frame from the video
             img = self.video_capture.capture_array()
             grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(grey, 1.1, 5)
+            faces = face_cascade.detectMultiScale(grey, 1, 5)
             if(len(faces) > 0):
                 print(len(faces), "face/s detected, this data can be send by socket")
             color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
