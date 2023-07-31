@@ -23,38 +23,6 @@ SIGNALING_SERVER = 'https://eoti-server.onrender.com'
 stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
 config = RTCConfiguration(iceServers=[stun_server])
 
-## VideoTrack class to capture camera with opencv
-# class VideoTrack(VideoStreamTrack):
-#     kind = 'video'
-
-#     def __init__(self):
-#         super().__init__()
-#         self.video_capture = cv2.VideoCapture(0)  # Capturar el stream de la cámara, reemplaza 0 por el número de dispositivo adecuado si no es la cámara predeterminada
-#         self.pts = 0  # Inicializar el valor de pts
-#         self.time_base = Fraction(1, 30)  # Establecer time_base según el FPS deseado
-
-#     async def recv(self):
-#         try:
-#             # Capture a frame from the video
-#             ret, img = self.video_capture.read()
-
-#             if not ret or img is None:
-#                 # No se pudo capturar ningún cuadro de video
-#                 return None
-
-#             # Create a new VideoFrame
-#             new_frame = av.VideoFrame.from_ndarray(img)
-#             new_frame.pts = self.pts
-#             new_frame.time_base = self.time_base
-#             self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
-
-#             # Return the VideoFrame
-#             return new_frame
-
-#         except Exception as e:
-#             # Código para manejar cualquier otra excepción
-#             print("Ocurrió un error:", str(e))
-
 ## VideoTrack class to capture camera with picamera2
 class VideoTrack(VideoStreamTrack):
     kind = 'video'
@@ -99,25 +67,38 @@ async def run():
     # Conectar al servidor de señalización
     await sio.connect(SIGNALING_SERVER, auth=auth)
 
+
     # Crear una nueva conexión de pares
-    pc = RTCPeerConnection(configuration=config)
+    pc = None
+
+    # # Crear una nueva conexión de pares
+    # pc = RTCPeerConnection(configuration=config)
 
 
     @sio.event
     async def newCall(data):
+        nonlocal pc
         print("newcall")
 
 
         rtcMessage = data['rtcMessage']
         # Crear la descripción de la sesión remota
         remote_desc = RTCSessionDescription(sdp=rtcMessage['sdp'], type=rtcMessage['type'])
+
+
+        # Cerrar la conexión WebRTC anterior (si existe)
+        await close_connection()
+
+
+        # Crear un nuevo RTCPeerConnection
+        pc = RTCPeerConnection(configuration=config)
+        video_sender = pc.addTrack(video_track)
+        video_sender.direction = "sendonly"
+
+
         # Establecer la descripción de la sesión remota
         await pc.setRemoteDescription(remote_desc)
 
-
-        video_track = VideoTrack()
-        video_sender = pc.addTrack(video_track)
-        video_sender.direction = "sendonly"
 
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
@@ -180,7 +161,14 @@ async def run():
             #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
             #         break
         # cv2.destroyAllWindows()
-
+        
+    async def close_connection():
+        nonlocal pc
+        if pc:
+            # Cerrar la conexión RTCPeerConnection
+            pc.close()
+            await pc.wait_closed()
+            pc = None
 
     await sio.wait()
 
