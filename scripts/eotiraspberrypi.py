@@ -173,9 +173,9 @@ async def run():
         print("Desconexión del usuario")
         # Function to close the current RTCPeerConnection
         global pc
-            if pc:
-                pc.close()
-                await pc.wait_closed()
+        if pc:
+            pc.close()
+            await pc.wait_closed()
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
