@@ -36,17 +36,29 @@ class VideoTrack(VideoStreamTrack):
         self.pts = 0  # Inicializar el valor de pts
         self.time_base = Fraction(1, 30)  # Establecer time_base según el FPS deseado
 
-    async def recv(self):
+        # Run face detection code on initialization
+        self.detect_faces()
+
+    def detect_faces(self):
         try:
             # Capture a frame from the video
             img = self.video_capture.capture_array()
             grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             faces = face_cascade.detectMultiScale(grey, 1.1, 3)
-            if(len(faces) > 0):
-                print(len(faces), "face/s detected, this data can be send by socket")
-            color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
-            # Create a new VideoFrame
-            new_frame = av.VideoFrame.from_ndarray(color_img)
+            if len(faces) > 0:
+                print(len(faces), "face/s detected, this data can be sent by socket")
+        except Exception as e:
+            # Código para manejar cualquier otra excepción
+            print("Ocurrió un error during face detection:", str(e))
+
+    async def recv(self):
+        try:
+            # Capture a frame from the video
+            img = self.video_capture.capture_array()
+            grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            
+            # Create a new VideoFrame using the grayscale image
+            new_frame = av.VideoFrame.from_ndarray(grey)
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
             self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
