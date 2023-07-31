@@ -169,7 +169,7 @@ async def run():
         # ...
 
     @sio.event
-    async def userDisconnect():
+    async def userDisconnect(data):
         print("Desconexión del usuario")
         # Function to close the current RTCPeerConnection
         global pc
