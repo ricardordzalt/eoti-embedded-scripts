@@ -100,25 +100,38 @@ async def run():
     await sio.connect(SIGNALING_SERVER, auth=auth)
 
     # Crear una nueva conexión de pares
-    pc = RTCPeerConnection(configuration=config)
+    pc = None
+    video_track = None
+
+    # # Crear una nueva conexión de pares
+    # pc = RTCPeerConnection(configuration=config)
 
 
     @sio.event
     async def newCall(data):
+        nonlocal pc, video_track
         print("newcall")
 
 
         rtcMessage = data['rtcMessage']
         # Crear la descripción de la sesión remota
         remote_desc = RTCSessionDescription(sdp=rtcMessage['sdp'], type=rtcMessage['type'])
-        # Establecer la descripción de la sesión remota
-        await pc.setRemoteDescription(remote_desc)
 
 
+        # Cerrar la conexión WebRTC anterior (si existe)
+        await close_connection()
+
+
+        # Crear un nuevo RTCPeerConnection y VideoTrack
+        pc = RTCPeerConnection(configuration=config)
         video_track = VideoTrack()
         video_sender = pc.addTrack(video_track)
         video_sender.direction = "sendonly"
 
+        # Establecer la descripción de la sesión remota
+        await pc.setRemoteDescription(remote_desc)
+
+        
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
@@ -180,7 +193,18 @@ async def run():
             #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
             #         break
         # cv2.destroyAllWindows()
+    async def close_connection():
+        nonlocal pc, video_track
+        if pc:
+            # Cerrar la conexión RTCPeerConnection
+            pc.close()
+            await pc.wait_closed()
+            pc = None
 
+        if video_track:
+            # Cerrar y limpiar el track de video
+            video_track.stop()
+            video_track = None
 
     await sio.wait()
 
