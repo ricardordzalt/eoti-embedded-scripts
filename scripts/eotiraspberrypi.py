@@ -9,7 +9,6 @@ from aiortc import (
     RTCIceCandidate,
     MediaStreamTrack,
     VideoStreamTrack,
-    RTCRtpSender
 )
 from aiortc.contrib.media import PlayerStreamTrack, MediaPlayer
 import numpy as np
@@ -20,7 +19,7 @@ from picamera2 import Picamera2
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 # Configuración del servidor de señalización
-SIGNALING_SERVER = 'https://eoti-server.onrender.com'
+SIGNALING_SERVER = 'http://192.168.100.8:3000'
 stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
 config = RTCConfiguration(iceServers=[stun_server])
 
@@ -93,17 +92,15 @@ class VideoTrack(VideoStreamTrack):
 
 
 
-video_track = VideoTrack()
 async def run():
     # Inicializar el socketio
     sio = socketio.AsyncClient()
-    auth = { 'userId': '00:1A:2B:3C:4D:5E' }
+    auth = { 'userId': 'webrtc2' }
     # Conectar al servidor de señalización
     await sio.connect(SIGNALING_SERVER, auth=auth)
 
     # Crear una nueva conexión de pares
     pc = RTCPeerConnection(configuration=config)
-
 
 
     @sio.event
@@ -117,19 +114,10 @@ async def run():
         # Establecer la descripción de la sesión remota
         await pc.setRemoteDescription(remote_desc)
 
-        # Verifica si ya hay un track de video agregado
-        has_video_track = False
-        for transceiver in pc.getTransceivers():
-            if transceiver.kind == "video" and transceiver.sender.track:
-                has_video_track = True
-                break
 
-        # Si no se ha agregado un track de video, crea uno nuevo y agrégalo
-        if has_video_track == False:
-            video_sender = pc.addTrack(video_track)
-            video_sender.direction = "sendonly"
-
-
+        video_track = VideoTrack()
+        video_sender = pc.addTrack(video_track)
+        video_sender.direction = "sendonly"
 
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
@@ -167,15 +155,6 @@ async def run():
         print('Conexión establecida con el servidor')
         # Aquí puedes ejecutar la lógica adicional cuando te conectas al servidor
         # ...
-
-    @sio.event
-    async def userDisconnect(data):
-        print("Desconexión del usuario")
-        # Function to close the current RTCPeerConnection
-        global pc
-        if pc:
-            pc.close()
-            await pc.wait_closed()
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
