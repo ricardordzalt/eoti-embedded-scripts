@@ -49,11 +49,21 @@ class VideoTrack(VideoStreamTrack):
         try:
             # Capture a frame from the video
             img = self.video_capture.capture_array()
-            grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-            color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
+            # color_img = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)  # Convertir imagen en escala de grises a BGR
+            # # Create a new VideoFrame
+            # new_frame = av.VideoFrame.from_ndarray(color_img)
+            # new_frame.pts = self.pts
+            # new_frame.time_base = self.time_base
+            # self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
+
+            # # Return the VideoFrame
+            # return new_frame
+
+
             # Create a new VideoFrame
-            new_frame = av.VideoFrame.from_ndarray(color_img)
+            new_frame = av.VideoFrame.from_ndarray(img)
             new_frame.pts = self.pts
             new_frame.time_base = self.time_base
             self.pts += 1  # Incrementar el valor de pts para el siguiente cuadro
@@ -83,8 +93,6 @@ class VideoTrack(VideoStreamTrack):
         self._stop_flag.set()
         # Wait for the thread to finish
         self.face_detection_thread.join()
-
-# Resto del código sin cambios...
 
 
 # Crear una instancia de VideoTrack al iniciar el script
