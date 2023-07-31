@@ -92,6 +92,7 @@ class VideoTrack(VideoStreamTrack):
 
 
 
+video_track = VideoTrack()
 async def run():
     # Inicializar el socketio
     sio = socketio.AsyncClient()
@@ -115,7 +116,6 @@ async def run():
         await pc.setRemoteDescription(remote_desc)
 
 
-        video_track = VideoTrack()
         video_sender = pc.addTrack(video_track)
         video_sender.direction = "sendonly"
 
