@@ -19,7 +19,7 @@ from picamera2 import Picamera2
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 # Configuración del servidor de señalización
-SIGNALING_SERVER = 'http://192.168.100.8:3000'
+SIGNALING_SERVER = 'https://eoti-server.onrender.com'
 stun_server = RTCIceServer(urls='stun:stun.l.google.com:19302')
 config = RTCConfiguration(iceServers=[stun_server])
 
@@ -95,7 +95,7 @@ class VideoTrack(VideoStreamTrack):
 async def run():
     # Inicializar el socketio
     sio = socketio.AsyncClient()
-    auth = { 'userId': 'webrtc2' }
+    auth = { 'userId': '00:1A:2B:3C:4D:5E' }
     # Conectar al servidor de señalización
     await sio.connect(SIGNALING_SERVER, auth=auth)
 
