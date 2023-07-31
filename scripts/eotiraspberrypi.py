@@ -91,7 +91,6 @@ class VideoTrack(VideoStreamTrack):
             print("Ocurrió un error:", str(e))
 
 
-video_track = VideoTrack()
 
 async def run():
     # Inicializar el socketio
@@ -101,67 +100,27 @@ async def run():
     await sio.connect(SIGNALING_SERVER, auth=auth)
 
     # Crear una nueva conexión de pares
-    pc = None
-    # video_track = None
-
-    # # Crear una nueva conexión de pares
-    # pc = RTCPeerConnection(configuration=config)
+    pc = RTCPeerConnection(configuration=config)
 
 
     @sio.event
     async def newCall(data):
-        nonlocal pc
         print("newcall")
 
 
         rtcMessage = data['rtcMessage']
         # Crear la descripción de la sesión remota
         remote_desc = RTCSessionDescription(sdp=rtcMessage['sdp'], type=rtcMessage['type'])
-
-
-        # Cerrar la conexión WebRTC anterior (si existe)
-        await close_connection()
-
-
-        # Crear un nuevo RTCPeerConnection y VideoTrack
-        pc = RTCPeerConnection(configuration=config)
-        video_sender = pc.addTrack(video_track)
-        video_sender.direction = "sendonly"
-
         # Establecer la descripción de la sesión remota
         await pc.setRemoteDescription(remote_desc)
 
 
+        video_track = VideoTrack()
+        video_sender = pc.addTrack(video_track)
+        video_sender.direction = "sendonly"
+
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
-
-
-
-        @pc.on("connectionstatechange")
-        async def on_connectionstatechange():
-            print("1connectionstatechange", pc.connectionState)
-
-        @pc.on("signalingstatechange")
-        async def on_connectionstatechange():
-            print("2signalingstatechange", pc.iceConnectionState)
-
-        @pc.on("icecandidateerror")
-        async def on_connectionstatechange():
-            print("3signalingstatechange", pc.iceGatheringState)
-
-
-        @pc.on("track")
-        async def on_track(event):
-            print("event", event)
-            # while true:
-            #     frame = await event.recv()
-            #     print("frame", frame)
-            #     img = frame.to_ndarray(format="bgr24")
-                #     cv2.imshow("Stream", img)
-                #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
-                #         break
-            # cv2.destroyAllWindows()
-
 
         @pc.on("icecandidate")
         async def on_icecandidate(event):
@@ -197,18 +156,31 @@ async def run():
         # Aquí puedes ejecutar la lógica adicional cuando te conectas al servidor
         # ...
 
-    async def close_connection():
-        nonlocal pc, video_track
-        if pc:
-            # Cerrar la conexión RTCPeerConnection
-            pc.close()
-            # await pc.wait_closed()
-            pc = None
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        print("1connectionstatechange", pc.connectionState)
 
-        if video_track:
-            # Cerrar y limpiar el track de video
-            video_track.stop()
-            video_track = None
+    @pc.on("signalingstatechange")
+    async def on_connectionstatechange():
+        print("2signalingstatechange", pc.iceConnectionState)
+
+    @pc.on("icecandidateerror")
+    async def on_connectionstatechange():
+        print("3signalingstatechange", pc.iceGatheringState)
+
+
+    @pc.on("track")
+    async def on_track(event):
+        print("event", event)
+        # while true:
+        #     frame = await event.recv()
+        #     print("frame", frame)
+        #     img = frame.to_ndarray(format="bgr24")
+            #     cv2.imshow("Stream", img)
+            #     if cv2.waitKey(1) == 27:  # Presiona Esc para salir
+            #         break
+        # cv2.destroyAllWindows()
+
 
     await sio.wait()
 
