@@ -59,6 +59,8 @@ class VideoTrack(VideoStreamTrack):
             print("Ocurrió un error:", str(e))
 
 
+# Crear una instancia de VideoTrack al iniciar el script
+video_track = VideoTrack()
 
 async def run():
     # Inicializar el socketio
