@@ -208,7 +208,7 @@ async def run():
         nonlocal pc
         if pc:
             # Cerrar la conexión RTCPeerConnection
-            pc.close()
+            await pc.close()
             # await pc.wait_closed()
             pc = None
 
