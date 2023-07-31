@@ -168,6 +168,16 @@ async def run():
         # Aquí puedes ejecutar la lógica adicional cuando te conectas al servidor
         # ...
 
+    @sio.event
+    async def userDisconnect():
+        print("Desconexión del usuario")
+        # Function to close the current RTCPeerConnection
+        async def close_connection():
+            global pc
+            if pc:
+                pc.close()
+                await pc.wait_closed()
+
     @pc.on("connectionstatechange")
     async def on_connectionstatechange():
         print("1connectionstatechange", pc.connectionState)
